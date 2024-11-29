@@ -42,11 +42,12 @@ if ($method === 'GET') {
 
         // Criação de médicos
         if ($action === 'create_medicos') {
+            $nome = mysqli_real_escape_string($conexao, trim($input['nome']));
             $email = mysqli_real_escape_string($conexao, trim($input['email']));
             $data_nascimento = mysqli_real_escape_string($conexao, trim($input['data_nascimento']));
             $senha = isset($input['senha']) ? password_hash(trim($input['senha']), PASSWORD_DEFAULT) : '';
 
-            $sql = "INSERT INTO medicos (email, data_nascimento, senha) VALUES ('$email', '$data_nascimento', '$senha')";
+            $sql = "INSERT INTO medicos (nome, email, data_nascimento, senha) VALUES ('$nome', '$email', '$data_nascimento', '$senha')";
             if (mysqli_query($conexao, $sql)) {
                 sendResponse(true, 'Médico criado com sucesso', ['id' => mysqli_insert_id($conexao)]);
             } else {
@@ -57,11 +58,12 @@ if ($method === 'GET') {
         // Atualização de médicos
         elseif ($action === 'update_medicos') {
             $medicos_id = mysqli_real_escape_string($conexao, $input['medicos_id']);
+            $nome = mysqli_real_escape_string($conexao, trim($input['nome']));
             $email = mysqli_real_escape_string($conexao, trim($input['email']));
             $data_nascimento = mysqli_real_escape_string($conexao, trim($input['data_nascimento']));
             $senha = trim($input['senha']);
 
-            $sql = "UPDATE medicos SET email = '$email', data_nascimento = '$data_nascimento'";
+            $sql = "UPDATE medicos SET nome = '$nome', email = '$email', data_nascimento = '$data_nascimento'";
             if (!empty($senha)) {
                 $hashedSenha = password_hash($senha, PASSWORD_DEFAULT);
                 $sql .= ", senha='$hashedSenha'";
