@@ -18,7 +18,7 @@ class MedicosAPI {
         $dbHost = $_ENV['DB_HOST'];
         $dbName = $_ENV['DB_NAME'];
         $dbUser = $_ENV['DB_USER'];
-        $dbPass = $_ENV['DB_PASS'];
+        $dbPass = $_ENV['DB_PASSWORD'];
         $dbPort = $_ENV['DB_PORT'];
 
         // Configura a URL base
