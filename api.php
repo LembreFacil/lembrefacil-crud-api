@@ -1,96 +1,129 @@
 <?php
-require 'conexao.php';
+require 'vendor/autoload.php'; // Autoload do Composer para o Dotenv
+Dotenv\Dotenv::createImmutable(__DIR__)->load();
+
 header('Content-Type: application/json');
-header("Access-Control-Allow-Origin: *");  // Permitir qualquer origem (modifique para produção)
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
 // Permitir requisições CORS, se necessário
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-// Função para enviar respostas padronizadas
-function sendResponse($success, $message, $data = null) {
-    echo json_encode(['success' => $success, 'message' => $message, 'data' => $data]);
-    exit;
+// Classe para gerenciar médicos
+class MedicosAPI {
+    private $conexao;
+
+    // Construtor: configura a conexão com o banco de dados
+    public function __construct() {
+        $dbHost = $_ENV['DB_HOST'];
+        $dbName = $_ENV['DB_NAME'];
+        $dbUser = $_ENV['DB_USER'];
+        $dbPass = $_ENV['DB_PASS'];
+        $dbPort = $_ENV['DB_PORT'];
+
+        $baseUrl = "https://web-production-2a8d.up.railway.app/";
+
+        $this->conexao = mysqli_connect($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
+
+        if (!$this->conexao) {
+            die(json_encode(['success' => false, 'message' => 'Erro na conexão com o banco de dados: ' . mysqli_connect_error()]));
+        }
+    }
+
+    // Função para enviar respostas padronizadas
+    private function sendResponse($success, $message, $data = null) {
+        echo json_encode(['success' => $success, 'message' => $message, 'data' => $data]);
+        exit;
+    }
+
+    // Listar médicos
+    public function listMedicos() {
+        $sql = "SELECT * FROM medicos";
+        $result = mysqli_query($this->conexao, $sql);
+
+        if ($result) {
+            $medicos = [];
+            while ($row = mysqli_fetch_assoc($result)) {
+                $medicos[] = $row;
+            }
+            $this->sendResponse(true, 'Lista de médicos obtida com sucesso', $medicos);
+        } else {
+            $this->sendResponse(false, 'Erro ao obter a lista de médicos');
+        }
+    }
+
+    // Criar médico
+    public function createMedico($data) {
+        $email = mysqli_real_escape_string($this->conexao, trim($data['email']));
+        $data_nascimento = mysqli_real_escape_string($this->conexao, trim($data['data_nascimento']));
+        $senha = isset($data['senha']) ? password_hash(trim($data['senha']), PASSWORD_DEFAULT) : '';
+
+        $sql = "INSERT INTO medicos (email, data_nascimento, senha) VALUES ('$email', '$data_nascimento', '$senha')";
+        if (mysqli_query($this->conexao, $sql)) {
+            $this->sendResponse(true, 'Médico criado com sucesso', ['id' => mysqli_insert_id($this->conexao)]);
+        } else {
+            $this->sendResponse(false, 'Erro ao criar o médico');
+        }
+    }
+
+    // Atualizar médico
+    public function updateMedico($data) {
+        $medicos_id = mysqli_real_escape_string($this->conexao, $data['medicos_id']);
+        
+        $email = mysqli_real_escape_string($this->conexao, trim($data['email']));
+        $data_nascimento = mysqli_real_escape_string($this->conexao, trim($data['data_nascimento']));
+        $senha = trim($data['senha']);
+
+        $sql = "UPDATE medicos SET email = '$email', data_nascimento = '$data_nascimento'";
+        if (!empty($senha)) {
+            $hashedSenha = password_hash($senha, PASSWORD_DEFAULT);
+            $sql .= ", senha='$hashedSenha'";
+        }
+        $sql .= " WHERE id = '$medicos_id'";
+
+        if (mysqli_query($this->conexao, $sql) && mysqli_affected_rows($this->conexao) > 0) {
+            $this->sendResponse(true, 'Médico atualizado com sucesso');
+        } else {
+            $this->sendResponse(false, 'Nenhuma alteração realizada ou erro ao atualizar');
+        }
+    }
+
+    // Excluir médico
+    public function deleteMedico($data) {
+        $medicos_id = mysqli_real_escape_string($this->conexao, $data['medicos_id']);
+        $sql = "DELETE FROM medicos WHERE id = '$medicos_id'";
+
+        if (mysqli_query($this->conexao, $sql) && mysqli_affected_rows($this->conexao) > 0) {
+            $this->sendResponse(true, 'Médico deletado com sucesso');
+        } else {
+            $this->sendResponse(false, 'Erro ao deletar o médico ou registro não encontrado');
+        }
+    }
 }
 
-// Verifica o método da requisição
+// Inicializa a API
+api = new MedicosAPI($baseUrl, $dbHost, $dbName, $dbUser, $dbPass, $dbPort);
+
+// Lida com as requisições
 $method = $_SERVER['REQUEST_METHOD'];
+$data = json_decode(file_get_contents('php://input'), true);
 
 if ($method === 'GET') {
-    // Listagem de médicos
-    $sql = "SELECT * FROM medicos";
-    $result = mysqli_query($conexao, $sql);
-
-    if ($result) {
-        $medicos = [];
-        while ($row = mysqli_fetch_assoc($result)) {
-            $medicos[] = $row;
-        }
-        sendResponse(true, 'Lista de médicos obtida com sucesso', $medicos);
-    } else {
-        sendResponse(false, 'Erro ao obter a lista de médicos');
-    }
-} elseif ($method === 'POST') {
-    // Obtém os dados da requisição
-    $input = json_decode(file_get_contents('php://input'), true);
-
-    if (isset($input['action'])) {
-        $action = $input['action'];
-
-        // Criação de médicos
-        if ($action === 'create_medicos') {
-            $email = mysqli_real_escape_string($conexao, trim($input['email']));
-            $data_nascimento = mysqli_real_escape_string($conexao, trim($input['data_nascimento']));
-            $senha = isset($input['senha']) ? password_hash(trim($input['senha']), PASSWORD_DEFAULT) : '';
-
-            $sql = "INSERT INTO medicos (email, data_nascimento, senha) VALUES ('$email', '$data_nascimento', '$senha')";
-            if (mysqli_query($conexao, $sql)) {
-                sendResponse(true, 'Médico criado com sucesso', ['id' => mysqli_insert_id($conexao)]);
-            } else {
-                sendResponse(false, 'Erro ao criar o médico');
-            }
-        }
-
-        // Atualização de médicos
-        elseif ($action === 'update_medicos') {
-            $medicos_id = mysqli_real_escape_string($conexao, $input['medicos_id']);
-            $email = mysqli_real_escape_string($conexao, trim($input['email']));
-            $data_nascimento = mysqli_real_escape_string($conexao, trim($input['data_nascimento']));
-            $senha = trim($input['senha']);
-
-            $sql = "UPDATE medicos SET email = '$email', data_nascimento = '$data_nascimento'";
-            if (!empty($senha)) {
-                $hashedSenha = password_hash($senha, PASSWORD_DEFAULT);
-                $sql .= ", senha='$hashedSenha'";
-            }
-            $sql .= " WHERE id = '$medicos_id'";
-
-            if (mysqli_query($conexao, $sql) && mysqli_affected_rows($conexao) > 0) {
-                sendResponse(true, 'Médico atualizado com sucesso');
-            } else {
-                sendResponse(false, 'Nenhuma alteração realizada ou erro ao atualizar');
-            }
-        }
-
-        // Exclusão de médicos
-        elseif ($action === 'delete_medicos') {
-            $medicos_id = mysqli_real_escape_string($conexao, $input['medicos_id']);
-            $sql = "DELETE FROM medicos WHERE id = '$medicos_id'";
-
-            if (mysqli_query($conexao, $sql) && mysqli_affected_rows($conexao) > 0) {
-                sendResponse(true, 'Médico deletado com sucesso');
-            } else {
-                sendResponse(false, 'Erro ao deletar o médico ou registro não encontrado');
-            }
-        } else {
-            sendResponse(false, 'Ação não reconhecida');
-        }
-    } else {
-        sendResponse(false, 'Nenhuma ação foi especificada');
+    $api->listMedicos();
+} elseif ($method === 'POST' && isset($data['action'])) {
+    switch ($data['action']) {
+        case 'create_medicos':
+            $api->createMedico($data);
+            break;
+        case 'update_medicos':
+            $api->updateMedico($data);
+            break;
+        case 'delete_medicos':
+            $api->deleteMedico($data);
+            break;
+        default:
+            $api->sendResponse(false, 'Ação não reconhecida');
     }
 } else {
-    sendResponse(false, 'Método HTTP não suportado');
+    $api->sendResponse(false, 'Método HTTP não suportado');
 }
