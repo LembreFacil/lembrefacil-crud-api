@@ -14,15 +14,17 @@ class MedicosAPI {
     private $conexao;
 
     // Construtor: configura a conexão com o banco de dados
-    public function __construct() {
+    public function __construct($baseUrl = "https://web-production-2a8d.up.railway.app/") {
         $dbHost = $_ENV['DB_HOST'];
         $dbName = $_ENV['DB_NAME'];
         $dbUser = $_ENV['DB_USER'];
         $dbPass = $_ENV['DB_PASS'];
         $dbPort = $_ENV['DB_PORT'];
 
-        $baseUrl = "https://web-production-2a8d.up.railway.app/";
+        // Configura a URL base
+        $this->baseUrl = $baseUrl;
 
+        // Conexão com o banco de dados
         $this->conexao = mysqli_connect($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
 
         if (!$this->conexao) {
@@ -102,7 +104,7 @@ class MedicosAPI {
 }
 
 // Inicializa a API
-api = new MedicosAPI($baseUrl, $dbHost, $dbName, $dbUser, $dbPass, $dbPort);
+$api = new MedicosAPI(); // Não precisa passar baseUrl, pois já está configurado no construtor
 
 // Lida com as requisições
 $method = $_SERVER['REQUEST_METHOD'];
