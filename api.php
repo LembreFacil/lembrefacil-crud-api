@@ -1,6 +1,9 @@
 <?php
 require 'conexao.php';
 header('Content-Type: application/json');
+header("Access-Control-Allow-Origin: *");  // Permitir qualquer origem (modifique para produção)
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
 // Permitir requisições CORS, se necessário
 header('Access-Control-Allow-Origin: *');
