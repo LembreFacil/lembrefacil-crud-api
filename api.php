@@ -46,7 +46,7 @@ if ($method === 'GET') {
             $data_nascimento = mysqli_real_escape_string($conexao, trim($input['data_nascimento']));
             $senha = isset($input['senha']) ? password_hash(trim($input['senha']), PASSWORD_DEFAULT) : '';
 
-            $sql = "INSERT INTO medicos (email, data_nascimento, senha) VALUES ('$nome', '$email', '$data_nascimento', '$senha')";
+            $sql = "INSERT INTO medicos (email, data_nascimento, senha) VALUES ('$email', '$data_nascimento', '$senha')";
             if (mysqli_query($conexao, $sql)) {
                 sendResponse(true, 'Médico criado com sucesso', ['id' => mysqli_insert_id($conexao)]);
             } else {
